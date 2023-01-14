@@ -1,6 +1,6 @@
-# UltimateFightingMetaverse
+# Ultimate Fighting Metaverse
 
-Welcome to UltimateFightingMetaverse, the NFT game where players can mint their own unique fighters and battle it out in the metaverse arenas. With artwork produced by OpenAI's DALL-E and user input from our frontend NextJS application, each fighter is truly one of a kind.
+Welcome to Ultimate Fighting Metaverse, the NFT game where players can mint their own unique fighters and battle it out in the metaverse arenas. With artwork produced by OpenAI's DALL-E and user input from our frontend NextJS application, each fighter is truly one of a kind.
 
 Rarity for each fighter is randomly assigned, with the following odds: Common (50%), Uncommon (35%), Rare (10%), Legendary (5%). The maximum number of fighters that can be minted is 1000. As players fight with their NFTs, they can increase their stats and rise through the ranks to become the ultimate metaverse champion.
 

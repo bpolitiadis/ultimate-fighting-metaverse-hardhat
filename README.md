@@ -18,7 +18,7 @@ git clone https://github.com/bpolitiadis/ultimate-fighting-metaverse-hardhat.git
 Next, navigate to the project directory and install the dependencies:
 
 ```
-cd UltimateFightingMetaverse
+cd ultimate-fighting-metaverse-hardhat
 yarn install
 ```
 
@@ -54,15 +54,15 @@ This will run all of the Solidity tests for the smart contracts.
 
 ## Frontend
 
-To use the frontend application for UltimateFightingMetaverse, visit the following GitHub repository:
+To use the frontend application for Ultimate Fighting Metaverse, visit the following GitHub repository:
 
-https://github.com/[YOUR_USERNAME]/UltimateFightingMetaverse-frontend
+https://github.com/bpolitiadis/nextjs-ultimate-fighting-metaverse
 
 Follow the installation instructions in the README to get the application up and running.
 
 ## Contributing
 
-We welcome contributions to UltimateFightingMetaverse! If you have an idea for a new feature or have found a bug, please open an issue on GitHub.
+We welcome contributions to Ultimate Fighting Metaverse! If you have an idea for a new feature or have found a bug, please open an issue on GitHub.
 
 ## License
 

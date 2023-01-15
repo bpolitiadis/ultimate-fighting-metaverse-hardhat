@@ -27,10 +27,16 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         uint256 strength;
         uint256 stamina;
         uint256 technique;
-        // FighterClass fightStyle;
         Rarities rarity;
         uint256 victories;
     }
+
+    // //Struct representing an arena
+    // struct Arena {
+    //     uint8 arenaId;
+    //     uint256 tokenId1;
+    //     uint256 tokenId2;
+    // }
 
     // Struct representing a match
     struct Match {
@@ -64,12 +70,12 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
 
     // Counter for the number of matches that have been created
     Counters.Counter private s_matchIdCounter;
-    // Counter for the number of rooms that have been created
-    Counters.Counter private s_roomIdCounter;
-    // The maximum number of rooms that can be created
-    uint256 private immutable i_maxRooms = 8;
-    // Mapping from room ID to room
-    mapping(uint8 => Match) private s_rooms; //TODO make private
+    // // Counter for the number of arenas that have been created
+    // Counters.Counter private s_arenaIdCounter;
+    // The maximum number of arenas that can be created
+    uint256 private immutable i_maxArenas = 8;
+    // Mapping from arenaID to arena
+    mapping(uint8 => Match) private s_arenas; //TODO make private
     // Mapping from matchId to a match
     mapping(uint256 => Match) private s_matches; //TODO make private
 
@@ -77,14 +83,14 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
     // |-----------------Event Emitters----------------|
     // |-----------------------------------------------|
 
-    // Event emitted when a new fighter is created
+    // Event emitted when a new fighter is created (tokenID is the tokenId of the fighter created and stats are the stats of the fighter)
     event FighterCreated(uint256 tokenId, Stats stats);
-    // Event emitted when a match is created
+    // Event emitted when a match is created (matchId is the matchId of the match created, tokenId1 is the tokenId of the first fighter, tokenId2 is the tokenId of the second fighter, and outcome is the tokenId of the winner)
     event MatchCreated(uint256 matchId, uint256 tokenId1, uint256 tokenId2, uint256 outcome);
-    // Event emitted when a room is created
-    event RoomCreated(uint256 roomId, uint256 tokenId);
-    // Event emitted when a room is updated
-    event RoomClosed(uint256 roomId, uint256 matchId);
+    // Event emitted when a arena is created (arenaId is the arenaId of the arena created and tokenId is the tokenId of the fighter in the arena)
+    event ArenaOpened(uint256 arenaId, uint256 tokenId);
+    // Event emitted when a arena is updated (arenaId is the arenaId of the arena updated and tokenId is the tokenId of the fighter in the arena)
+    event ArenaClosed(uint256 arenaId, uint256 matchId);
 
     // |-----------------------------------------------|
     // |-----------------Modifiers---------------------|
@@ -102,9 +108,9 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         _;
     }
 
-    // Modifier to check if the room ID is valid
-    modifier isValidRoomId(uint256 roomId) {
-        require(roomId > 0 && roomId <= i_maxRooms, "Room ID is invalid");
+    // Modifier to check if the arena ID is valid
+    modifier isValidArenaId(uint256 arenaId) {
+        require(arenaId > 0 && arenaId <= i_maxArenas, "Arena ID is invalid");
         _;
     }
 
@@ -145,6 +151,7 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         // Ensure that the maximum number of NFTs has not been reached
         uint256 currentCounter = s_tokenIdCounter.current();
         require(currentCounter <= i_maxTokenIds, "Exceed maximum fighters supply");
+        require(bytes(_tokenURI).length > 0, "Token URL is empty");
 
         // Increment the token ID counter and mint the NFT
         s_tokenIdCounter.increment();
@@ -172,48 +179,53 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
     }
 
     /**
-     * @dev Allows the owner of a token to join a room with another player's token. If the room is full, a match will be
+     * @dev Allows the owner of a token to join a arena with another player's token. If the arena is full, a match will be
      * initiated between the two tokens and the winner will be stored in the winnerId field of the Match struct.
-     * Reverts if the caller is not the owner of the token, if the room number is invalid, if the token ID is invalid,
-     * or if the room is already full.
-     * @param _roomNumber The number of the room to join.
+     * Reverts if the caller is not the owner of the token, if the arena number is invalid, if the token ID is invalid,
+     * or if the arena is already full.
+     * @param _arenaNumber The number of the arena to join.
      * @param _tokenId The ID of the token to use in the match.
      */
-    function joinRoom(
-        uint8 _roomNumber,
+    function joinArena(
+        uint8 _arenaNumber,
         uint256 _tokenId
-    ) external isValidTokenId(_tokenId) isValidRoomId(_roomNumber) onlyOwnerOf(_tokenId) {
-        // If the first token slot in the room is empty, store the given token in that slot
-        if (s_rooms[_roomNumber].tokenId1 == 0) {
-            s_rooms[_roomNumber].tokenId1 = _tokenId;
-            emit RoomCreated(_roomNumber, _tokenId);
+    ) external isValidTokenId(_tokenId) isValidArenaId(_arenaNumber) onlyOwnerOf(_tokenId) {
+        // If the first token slot in the arena is empty, store the given token in that slot
+        if (s_arenas[_arenaNumber].tokenId1 == 0) {
+            s_arenas[_arenaNumber].tokenId1 = _tokenId;
+            emit ArenaOpened(_arenaNumber, _tokenId);
             return;
         }
 
-        // If the second token slot in the room is empty, store the given token in that slot
-        if (s_rooms[_roomNumber].tokenId2 == 0) {
-            // If the caller is already in the room, throw an error
-            if (s_rooms[_roomNumber].tokenId1 == _tokenId) {
-                revert("You are joined in this room already.");
+        // If the second token slot in the arena is empty, store the given token in that slot
+        if (s_arenas[_arenaNumber].tokenId2 == 0) {
+            // If the caller is already in the arena, throw an error
+            if (s_arenas[_arenaNumber].tokenId1 == _tokenId) {
+                revert("You have joined in this arena already.");
             }
-            s_rooms[_roomNumber].tokenId2 = _tokenId;
+            s_arenas[_arenaNumber].tokenId2 = _tokenId;
         } else {
             // If both slots are full, throw an error
-            revert("Room is full!");
+            revert("Arena is full!");
         }
 
         // Determine the winner of the match between the two tokens
-        uint256 outcome = fight(s_rooms[_roomNumber].tokenId1, s_rooms[_roomNumber].tokenId2);
-        s_rooms[_roomNumber].winnerId = outcome;
+        uint256 outcome = fight(s_arenas[_arenaNumber].tokenId1, s_arenas[_arenaNumber].tokenId2);
+        s_arenas[_arenaNumber].winnerId = outcome;
 
         // Store the match in the `s_matches` mapping and emit a `MatchCreated` event
         s_matchIdCounter.increment();
-        s_matches[s_matchIdCounter.current()] = s_rooms[_roomNumber];
-        emit MatchCreated(s_matchIdCounter.current(), s_rooms[_roomNumber].tokenId1, s_rooms[_roomNumber].tokenId2, outcome);
+        s_matches[s_matchIdCounter.current()] = s_arenas[_arenaNumber];
+        emit MatchCreated(
+            s_matchIdCounter.current(),
+            s_arenas[_arenaNumber].tokenId1,
+            s_arenas[_arenaNumber].tokenId2,
+            outcome
+        );
 
-        // Clear the room and emit a `RoomClosed` event
-        s_rooms[_roomNumber] = Match(0, 0, 0, 0);
-        emit RoomClosed(_roomNumber, s_matchIdCounter.current());
+        // Clear the arena and emit a `ArenaClosed` event
+        s_arenas[_arenaNumber] = Match(0, 0, 0, 0);
+        emit ArenaClosed(_arenaNumber, s_matchIdCounter.current());
     }
 
     /**
@@ -298,10 +310,11 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         if (rarity == Rarities.Uncommon) return s_rarityAdjustments[abi.encode(Rarities.Uncommon)];
         if (rarity == Rarities.Rare) return s_rarityAdjustments[abi.encode(Rarities.Rare)];
         if (rarity == Rarities.Legendary) return s_rarityAdjustments[abi.encode(Rarities.Legendary)];
-        revert();
+        revert("Invalid rarity!");
     }
 
     // Returns the stats for a fighter
+    //TODO return in an numbers array
     function getFighterStats(uint256 tokenId) public view isValidTokenId(tokenId) returns (Stats memory) {
         return s_tokenIdToStats[tokenId];
     }
@@ -331,18 +344,23 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         s_mintPrice = _newPrice;
     }
 
-    // Returns max number of rooms
-    function getMaxRooms() public pure returns (uint256) {
-        return i_maxRooms;
+    // Returns max number of arenas
+    function getMaxArenas() public pure returns (uint256) {
+        return i_maxArenas;
     }
 
-    // Returns all rooms
-    function getAllRooms() public view returns (Match[] memory) {
-        Match[] memory rooms = new Match[](i_maxRooms);
-        for (uint8 i = 0; i < i_maxRooms; i++) {
-            rooms[i] = s_rooms[i + 1];
+    // Returns arena struct for an arenaID
+    function getArena(uint8 _arenaId) public view isValidArenaId(_arenaId) returns (Match memory) {
+        return s_arenas[_arenaId];
+    }
+
+    // Returns all arenas
+    function getAllArenas() public view returns (Match[] memory) {
+        Match[] memory arenas = new Match[](i_maxArenas);
+        for (uint8 i = 0; i < i_maxArenas; i++) {
+            arenas[i] = s_arenas[i + 1];
         }
-        return rooms;
+        return arenas;
     }
 
     // Returns current number of history matches

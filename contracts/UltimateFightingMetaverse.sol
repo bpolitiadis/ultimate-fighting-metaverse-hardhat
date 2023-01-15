@@ -290,7 +290,7 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         // Generate the random numbers
         for (uint256 i = 0; i < _count; i++) {
             // Generate a pseudo-random number using keccak256 and the blockhash as a seed
-            uint256 rand = (uint256(keccak256(abi.encodePacked(blockhash(block.number - 1)))) % (_max - _min + 1)) + _min;
+            uint256 rand = (uint256(keccak256(abi.encodePacked(blockhash(block.number - (i))))) % (_max - _min + 1)) + _min;
 
             // Store the random number in the array
             randomNumbers[i] = rand;

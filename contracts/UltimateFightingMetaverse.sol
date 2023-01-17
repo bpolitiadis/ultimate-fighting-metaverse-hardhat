@@ -147,11 +147,11 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
      */
     function safeMint(string memory _tokenURI) public payable {
         // Ensure that the correct amount of ether has been sent with the transaction
-        require(msg.value >= s_mintPrice, "Ether sent is not correct");
+        require(msg.value >= s_mintPrice, "Mint price not met");
         // Ensure that the maximum number of NFTs has not been reached
         uint256 currentCounter = s_tokenIdCounter.current();
-        require(currentCounter <= i_maxTokenIds, "Exceed maximum fighters supply");
-        require(bytes(_tokenURI).length > 0, "Token URL is empty");
+        require(currentCounter <= i_maxTokenIds, "Max supply reached");
+        require(bytes(_tokenURI).length > 0, "Token URI cannot be empty");
 
         // Increment the token ID counter and mint the NFT
         s_tokenIdCounter.increment();
@@ -212,6 +212,25 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         // Determine the winner of the match between the two tokens
         uint256 outcome = fight(s_arenas[_arenaNumber].tokenId1, s_arenas[_arenaNumber].tokenId2);
         s_arenas[_arenaNumber].winnerId = outcome;
+
+        //Increase the number of victories for the winner
+        s_tokenIdToStats[outcome].victories++;
+
+        //Increase the stats of winner
+        s_tokenIdToStats[outcome].strength += 3;
+        s_tokenIdToStats[outcome].stamina += 3;
+        s_tokenIdToStats[outcome].technique += 3;
+
+        // Increase the stats of the loser
+        if (s_arenas[_arenaNumber].tokenId1 == outcome) {
+            s_tokenIdToStats[s_arenas[_arenaNumber].tokenId2].strength += 1;
+            s_tokenIdToStats[s_arenas[_arenaNumber].tokenId2].stamina += 1;
+            s_tokenIdToStats[s_arenas[_arenaNumber].tokenId2].technique += 1;
+        } else {
+            s_tokenIdToStats[s_arenas[_arenaNumber].tokenId1].strength += 1;
+            s_tokenIdToStats[s_arenas[_arenaNumber].tokenId1].stamina += 1;
+            s_tokenIdToStats[s_arenas[_arenaNumber].tokenId1].technique += 1;
+        }
 
         // Store the match in the `s_matches` mapping and emit a `MatchCreated` event
         s_matchIdCounter.increment();
@@ -314,7 +333,6 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
     }
 
     // Returns the stats for a fighter
-    //TODO return in an numbers array
     function getFighterStats(uint256 tokenId) public view isValidTokenId(tokenId) returns (Stats memory) {
         return s_tokenIdToStats[tokenId];
     }
@@ -322,11 +340,6 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
     // Returns last token ID to be minted
     function getLastTokenId() public view returns (uint256) {
         return s_tokenIdCounter.current();
-    }
-
-    // Returns next token ID to be minted
-    function getNextTokenId() public view returns (uint256) {
-        return s_tokenIdCounter.current() + 1;
     }
 
     // Returns max token supply

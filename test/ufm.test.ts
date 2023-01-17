@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { assert, expect } from 'chai';
 import { network, deployments, ethers } from 'hardhat';
@@ -19,6 +20,7 @@ if (developmentChains.includes(network.name)) {
 			[, player] = await ethers.getSigners();
 			const contractFactory = await ethers.getContractFactory('UltimateFightingMetaverse');
 			contract = (await contractFactory.deploy()) as UltimateFightingMetaverse;
+			await contract.deployed();
 		});
 
 		describe('constructor', async () => {
@@ -26,9 +28,9 @@ if (developmentChains.includes(network.name)) {
 				const maxTokenSupply = await contract.getMaxTokenSupply();
 				const mintPrice = await contract.getMintPrice();
 				const maxArenas = await contract.getMaxArenas();
-				expect(maxTokenSupply.toNumber()).to.equal(maxSupply);
-				expect(mintPrice.toString()).to.equal(mintFee.toString());
-				expect(maxArenas).to.equal(totalArenas);
+				expect(maxTokenSupply.toNumber()).to.equal(maxSupply, 'Max supply is not correct');
+				expect(mintPrice.toString()).to.equal(mintFee.toString(), 'Mint price is not correct');
+				expect(maxArenas).to.equal(totalArenas, 'Max arenas is not correct');
 			});
 		});
 
@@ -39,7 +41,7 @@ if (developmentChains.includes(network.name)) {
 				const tokenId = receipt.events?.[0].args?.tokenId;
 
 				const tokenURI = await contract.tokenURI(tokenId);
-				expect(tokenURI).to.equal('test');
+				expect(tokenURI).to.equal('test', 'Token URI is not correct');
 				// const owner = await contract.ownerOf(tokenId);
 				// expect(owner).to.equal(player.address);
 				// const balance = await contract.balanceOf(player.address);
@@ -51,19 +53,78 @@ if (developmentChains.includes(network.name)) {
 					technique: fighterStats.technique.toNumber(),
 					rarity: fighterStats.rarity.toString(),
 					victories: fighterStats.victories.toNumber(),
-				}
-				console.log(JSON.stringify(fighterStatsObj));
-				expect(fighterStats.strength.toNumber()).to.not.equal(0);
-				expect(fighterStats.stamina.toNumber()).to.not.equal(0);
-				expect(fighterStats.technique.toNumber()).to.not.equal(0);
-				expect(fighterStats.rarity.toString()).to.be.equal("0" || "1" || "2" || "3");
-				expect(fighterStats.victories.toNumber()).to.equal(0);
+				};
+				// console.log(JSON.stringify(fighterStatsObj));
+				expect(fighterStats.strength.toNumber()).to.not.equal(0, 'Strength is 0');
+				expect(fighterStats.stamina.toNumber()).to.not.equal(0, 'Stamina is 0');
+				expect(fighterStats.technique.toNumber()).to.not.equal(0, 'Technique is 0');
+				expect(fighterStats.rarity.toString()).to.be.equal('0' || '1' || '2' || '3', 'Rarity is not 0, 1, 2 or 3');
+				expect(fighterStats.victories.toNumber()).to.equal(0, 'Victories is not 0');
+			});
 
+			it.skip('mints all nfts', async () => {
+				let response;
+				let receipt;
+				let tokenId;
+				let tokenURI;
+				// eslint-disable-next-line no-plusplus
+				for (let i = 0; i <= maxSupply; i++) {
+					response = await contract.safeMint(`test${i.toString()}`, { value: mintFee });
+					receipt = await response.wait();
+					tokenId = receipt.events?.[0].args?.tokenId;
+					tokenURI = await contract.tokenURI(tokenId);
+					expect(tokenURI).to.equal(`test${i.toString()}`, 'Token URI is not correct');
+				}
+
+				// expect an error when trying to mint more than the max supply of nfts allowed in the contract
+				// await expect(contract.safeMint('test', { value: mintFee })).to.be.revertedWith('Max supply reached');
+			});
+
+			it('tries to mint an nft with less than mint price and fails', async () => {
+				await expect(
+					contract.safeMint('test', { value: ethers.utils.parseEther('0.009') })
+				).to.be.revertedWith('Mint price not met');
+			});
+
+			it('tries to mint an nft with empty url and fails', async () => {
+				await expect(contract.safeMint('', { value: mintFee })).to.be.revertedWith(
+					'Token URI cannot be empty'
+				);
 			});
 		});
 
 		describe('joinArena', async () => {
-			it('joins the arena correctly', async () => {});
+			it('joins the arena correctly', async () => {
+				let response; let receipt;
+
+				// mint two fighters
+				response = await contract.safeMint('test1', { value: mintFee });
+				receipt = await response.wait();
+				const tokenId1 = receipt.events?.[0].args?.tokenId;
+
+				response = await contract.safeMint('test2', { value: mintFee });
+				receipt = await response.wait();
+				const tokenId2 = receipt.events?.[0].args?.tokenId;
+
+				// join arena
+				response = await contract.joinArena(1, tokenId1);
+				receipt = await response.wait();
+				const arenaId = receipt.events?.[0].args?.arenaId;
+				console.log(arenaId.toString());
+
+				// check arena
+				const arena = await contract.getArena(1);
+				expect(arena.tokenId1.toString()).to.equal(tokenId1.toString());
+				console.log(arena.toString());
+
+
+				response = await contract.joinArena(1, tokenId2);
+				receipt = await response.wait();
+
+				// check arena
+
+
+			});
 		});
 	});
 }

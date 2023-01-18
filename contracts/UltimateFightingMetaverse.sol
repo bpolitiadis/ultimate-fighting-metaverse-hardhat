@@ -70,8 +70,8 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
 
     // Counter for the number of matches that have been created
     Counters.Counter private s_matchIdCounter;
-    // // Counter for the number of arenas that have been created
-    // Counters.Counter private s_arenaIdCounter;
+    // Arena entrance fee
+    uint256 private s_arenaEntranceFee = 0.01 * 1000000000000000000;
     // The maximum number of arenas that can be created
     uint256 private immutable i_maxArenas = 8;
     // Mapping from arenaID to arena
@@ -189,7 +189,9 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
     function joinArena(
         uint8 _arenaNumber,
         uint256 _tokenId
-    ) external isValidTokenId(_tokenId) isValidArenaId(_arenaNumber) onlyOwnerOf(_tokenId) {
+    ) public payable isValidTokenId(_tokenId) isValidArenaId(_arenaNumber) onlyOwnerOf(_tokenId) {
+        require(msg.value >= s_arenaEntranceFee);
+
         // If the first token slot in the arena is empty, store the given token in that slot
         if (s_arenas[_arenaNumber].tokenId1 == 0) {
             s_arenas[_arenaNumber].tokenId1 = _tokenId;
@@ -245,6 +247,9 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         // Clear the arena and emit a `ArenaClosed` event
         s_arenas[_arenaNumber] = Match(0, 0, 0, 0);
         emit ArenaClosed(_arenaNumber, s_matchIdCounter.current());
+
+        // Transfer the prize to the winner
+        payable(ownerOf(outcome)).transfer((s_arenaEntranceFee * 2 * 90) / 100);
     }
 
     /**
@@ -352,9 +357,19 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
         return s_mintPrice;
     }
 
+    // Returns the arena entrance fee
+    function getArenaEntranceFee() public view returns (uint256) {
+        return s_arenaEntranceFee;
+    }
+
     // Sets the price to mint a new fighter
     function setMintPrice(uint256 _newPrice) public onlyOwner {
         s_mintPrice = _newPrice;
+    }
+
+    // Sets the arena entrance fee
+    function setArenaEntranceFee(uint256 _newFee) public onlyOwner {
+        s_arenaEntranceFee = _newFee;
     }
 
     // Returns max number of arenas
@@ -418,6 +433,12 @@ contract UltimateFightingMetaverse is ERC721, ERC721Enumerable, ERC721URIStorage
             }
             return result;
         }
+    }
+
+    //Withdraw funds from contract
+    function withdraw() public onlyOwner {
+        uint256 balance = address(this).balance;
+        payable(msg.sender).transfer(balance);
     }
 
     // The following functions are overrides required by Solidity.

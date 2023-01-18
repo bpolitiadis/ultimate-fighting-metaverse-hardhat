@@ -16,6 +16,12 @@ const config: HardhatUserConfig = {
 	defaultNetwork: 'hardhat',
 	solidity: {
 		version: '0.8.8',
+		settings: {
+			optimizer: {
+				enabled: true,
+				runs: 200,
+			},
+		},
 	},
 	networks: {
 		mumbai: {
